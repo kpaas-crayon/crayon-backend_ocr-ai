@@ -1,0 +1,24 @@
+# .dockerignore
+
+# 1. 민감한 환경 변수 파일
+.env
+
+# 2. 파이썬 가상환경 폴더
+venv/
+
+# 3. 기타 사용자 폴더
+etc/
+previous/
+
+# 4. 에디터 설정 폴더
+.vscode/
+
+# 5. 파이썬 캐시 파일 및 폴더
+__pycache__/
+*.pyc
+
+# 6. 로그 파일
+*.log
+
+# 7. Git 설정 파일
+.gitignore

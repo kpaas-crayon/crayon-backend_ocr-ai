@@ -5,7 +5,7 @@
 # 코드에 대한 상세한 설명은 \previous\pre_main.py에 있음
 
 from fastapi import FastAPI, Request, HTTPException
-from etc.google_auth import router as auth_router
+from google_auth import router as auth_router
 from pydantic import BaseModel
 
 from drive_convert import convert_pdf_to_docs
