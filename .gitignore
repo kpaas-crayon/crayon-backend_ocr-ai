@@ -1,0 +1,17 @@
+# 환경 변수
+.env
+
+# 파이썬 캐시 및 가상환경
+__pycache__/
+*.pyc
+venv/
+
+# 기타 불필요 폴더
+etc/
+previous/
+
+# VSCode 환경 폴더
+.vscode/
+
+# 로그 및 임시 파일
+*.log
