@@ -1,17 +1,14 @@
 import os
 import logging
-from openai import OpenAI
+import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 환경 감지
-# APP_ENV 환경변수가 undefined인 경우, 기본값은 dev
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 APP_ENV = os.getenv("APP_ENV", "dev").lower()
 
-# 운영(prod)일 때는 logger 설정
-# 모드 변환 예시) docker run -e APP_ENV=prod ocr-assessment-ai
+# 로거 설정 (운영 환경에서만)
 if APP_ENV == "prod":
     logging.basicConfig(
         level=logging.INFO,
@@ -23,11 +20,14 @@ if APP_ENV == "prod":
     )
     log = logging.getLogger(__name__)
 else:
-    log = None  # 개발 모드에선 print() 사용
+    log = None  # 개발 환경에서는 print() 사용
 
-def grade_text(student_text: str, criteria: str):
+# ======================================================
+# 비동기 GPT 채점 함수
+# ======================================================
+async def grade_text(client: httpx.AsyncClient, student_text: str, criteria: str):
     """
-    수행평가 자동 채점 — 문맥 분석 중심, 수정 금지
+    수행평가 자동 채점 — 문맥 분석 중심 (비동기 버전)
     """
     instruction = """
 # 역할
@@ -68,21 +68,38 @@ def grade_text(student_text: str, criteria: str):
 """
 
     full_prompt = instruction.strip() + "\n\n" + grading_prompt.strip()
-    token_estimate = len(full_prompt) / 4
+    token_estimate = len(full_prompt) // 4
 
-    # 환경에 따른 로그 출력 방식 전환
+    # 로그 출력
     if APP_ENV == "prod":
-        log.info(f"🔍 예상 토큰 수: 약 {int(token_estimate)}개")
+        log.info(f"🔍 예상 토큰 수: 약 {token_estimate}개")
     else:
-        print(f"🔍 예상 토큰 수: 약 {int(token_estimate)}개")
+        print(f"🔍 예상 토큰 수: 약 {token_estimate}개")
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": full_prompt}],
-        max_tokens=200,
-    )
+    # 비동기 HTTP 요청으로 OpenAI API 호출
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [{"role": "user", "content": full_prompt}],
+        "max_tokens": 200,
+    }
 
-    result = response.choices[0].message.content.strip()
+    try:
+        res = await client.post(url, headers=headers, json=payload)
+        res.raise_for_status()
+    except httpx.HTTPError as e:
+        if APP_ENV == "prod":
+            log.error(f"❌ GPT API 호출 실패: {e}")
+        else:
+            print(f"❌ GPT API 호출 실패: {e}")
+        return None
+
+    data = res.json()
+    result = data["choices"][0]["message"]["content"].strip()
 
     if APP_ENV == "prod":
         log.info("✅ GPT 채점 완료")

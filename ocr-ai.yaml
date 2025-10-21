@@ -1,0 +1,66 @@
+# 실제 운영 시,
+# 구글 정보 삭제 + type: ClusterIP 로 변경하기
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ocr-ai
+  namespace: kong
+  labels:
+    app: ocr-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ocr-ai
+  template:
+    metadata:
+      labels:
+        app: ocr-ai
+    spec:
+      containers:
+        - name: ocr-ai
+          image: senre/ocr-ai:latest   # ✅ 도커허브에 올린 이미지
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000      # FastAPI 기본 포트
+          env:
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-secrets
+                  key: GOOGLE_CLIENT_ID
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-secrets
+                  key: GOOGLE_CLIENT_SECRET
+            - name: TOKEN_SOURCE
+              value: "kong"
+            - name: APP_ENV
+              value: "dev"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-secrets
+                  key: OPENAI_API_KEY
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ocr-ai
+  namespace: kong
+  labels:
+    app: ocr-ai
+spec:
+  selector:
+    app: ocr-ai
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP

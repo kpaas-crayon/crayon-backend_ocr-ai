@@ -1,17 +1,17 @@
-# 환경 변수
+# 🌍 Environment
 .env
 
-# 파이썬 캐시 및 가상환경
+# 🐍 Python cache & virtualenv
 __pycache__/
 *.pyc
+.venv/
 venv/
 
-# 기타 불필요 폴더
-etc/
-previous/
-
-# VSCode 환경 폴더
-.vscode/
-
-# 로그 및 임시 파일
+# ⚙️ Local folders
+logs/
 *.log
+
+# 💻 Editor / OS
+.vscode/
+.idea/
+.DS_Store
